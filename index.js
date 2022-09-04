@@ -34,6 +34,7 @@ async function getHTML () {
 
 async function getTests () {
     const html = await getHTML()
+	const keys = ["name", "note", "date"]
     let $ = cheerio.load(html),
         elements = $(".row"),
         tests;
@@ -41,7 +42,7 @@ async function getTests () {
         tests = [],
         elements.each((i, el) => {
             let values = $(this).find("span").toArray().map(a => a.text())
-            tests.push({"name": values[0], "note": values[1], "date": values[2]})  // there should be a better way of doing this
+			tests.push(Object.fromEntries(values.map((el, i) => [keys[i], el])))  // {name: ..., note: ..., date: ...}
         }), tests
     )
 }
