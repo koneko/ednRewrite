@@ -34,20 +34,16 @@ async function getHTML () {
 
 async function getTests () {
     const html = await getHTML()
-    const $ = cheerio.load(html)
-    let tests = []
-    if ($(".row").length == 0) {
-        return []
-    }
-    $(".row").each((i, el) => {
-        let test = {}
-        let text = $(this).find("span").toArray()
-        test.name = text[0].text()
-        test.note = text[1].text()
-        test.date = text[2].text()
-        tests.push(test)
-    })
-    return tests
+    let $ = cheerio.load(html),
+        elements = $(".row"),
+        tests;
+    return elements.length == 0 ? [] : (
+        tests = [],
+        elements.each((i, el) => {
+            let values = $(this).find("span").toArray().map(a => a.text())
+            tests.push({"name": values[0], "note": values[1], "date": values[2]})  // there should be a better way of doing this
+        }), tests
+    )
 }
 
 
@@ -55,23 +51,21 @@ setInterval(async () => {
     console.log("Fetching...")
     getTests().then(async (tests) => {
         if (tests == []) return
-        let past = readPast()
-        let newTests = []
-        for (let i = 0; i < tests.length; i++) {
-            if (past.findIndex((t) => t.name == tests[i].name) == -1) {
-                newTests.push(tests[i])
+        let past = readPast(),
+            newTests = []
+        for (let i of tests) {
+            if (past.findIndex((t) => t.name == i.name) == -1) {
+                newTests.push(i)
             }
         }
         if (newTests.length == 0) return console.log("No new tests.")
-        let webhook = new Webhook(webhookURL)
-        for (let i = 0; i < newTests.length; i++) {
-            let test = newTests[i]
+        for (let test of tests) {
             let embed = new MessageBuilder()
                 .setTitle(test.name)
                 .setDescription(test.note)
                 .setColor("#ff00ff")
                 .setTimestamp()
-            webhook.send(embed)
+            new Webhook(webhookURL).send(embed)
         }
         writePast(tests)
     })
